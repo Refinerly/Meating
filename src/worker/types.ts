@@ -7,12 +7,6 @@ export interface Env {
   CF_ACCESS_TEAM_DOMAIN?: string;
 }
 
-export interface AccessContext {
-  access?: {
-    getIdentity(): Promise<{ email?: string; name?: string; id?: string } | null>;
-  };
-}
-
 export interface Identity {
   email: string;
   name: string | null;

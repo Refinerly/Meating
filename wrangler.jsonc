@@ -1,21 +1,25 @@
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "meating",
-  "main": "src/worker/index.ts",
-  "compatibility_date": "2026-10-24",
-  "assets": {
-    "directory": "./dist/client",
-    "binding": "ASSETS",
-    "not_found_handling": "single-page-application"
-  },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "meating-db",
-      "migrations_dir": "migrations"
-    }
-  ],
-  "observability": {
-    "enabled": true
-  }
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "meating",
+	"main": "src/worker/index.ts",
+	"compatibility_date": "2026-10-24",
+	"assets": {
+		"directory": "./dist/client",
+		"binding": "ASSETS",
+		"not_found_handling": "single-page-application",
+		"run_worker_first": [
+			"/api/*"
+		]
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "meating-db",
+			"migrations_dir": "migrations",
+			"database_id": "0e87682d-4925-4f1f-b54d-d5026520a5b8"
+		}
+	],
+	"observability": {
+		"enabled": true
+	}
 }

@@ -40,13 +40,15 @@ export const api = {
 };
 
 export function currentUser() {
-  return fetch('/api/identity')
+  return fetch('/api/me')
     .then(async response => {
       if (response.status === 401) return null;
-      const identity: unknown = await response.json();
+      const result: unknown = await response.json();
       if (!response.ok) throw new Error('Unable to verify your Cloudflare Access identity.');
-      if (!identity || typeof identity !== 'object') throw new Error('Cloudflare Access returned an invalid identity.');
-      const record = identity as Record<string, unknown>;
+      if (!result || typeof result !== 'object') throw new Error('Cloudflare Access returned an invalid identity.');
+      const user = (result as Record<string, unknown>).user;
+      if (!user || typeof user !== 'object') throw new Error('Cloudflare Access returned an invalid identity.');
+      const record = user as Record<string, unknown>;
       return typeof record.email === 'string'
         ? { email: record.email, name: typeof record.name === 'string' ? record.name : undefined }
         : null;

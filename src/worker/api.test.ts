@@ -32,23 +32,6 @@ function createEnv(responses: Record<string, unknown> = {}) {
 describe('Worker API data handlers', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it('returns the Cloudflare Worker Access identity from its supported context API', async () => {
-    const { env } = createEnv();
-    const response = await worker.fetch(new Request('https://meating.example/api/identity'), env, {
-      access: { getIdentity: async () => ({ email: 'owner@example.com', name: 'Owner' }) },
-    });
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ email: 'owner@example.com', name: 'Owner' });
-  });
-
-  it('denies an identity that is not on the configured email allowlist', async () => {
-    const { env } = createEnv();
-    const response = await worker.fetch(new Request('https://meating.example/api/identity'), env, {
-      access: { getIdentity: async () => ({ email: 'someone-else@example.com' }) },
-    });
-    expect(response.status).toBe(403);
-  });
-
   it('creates a check-in using the authenticated account and only supported schema fields', async () => {
     vi.spyOn(access, 'requireIdentity').mockResolvedValue(identity);
     const row = { id: 'checkin-id', user_id: identity.subject, timestamp: '2026-10-24T12:00:00.000Z', stats: '{"mood":4}', social_behavior: 'posting', note: 'Feeling good', nudges_applied: '[]' };
@@ -72,6 +55,15 @@ describe('Worker API data handlers', () => {
     const response = await worker.fetch(new Request('https://meating.example/api/health-logs/2026-10-24'), env);
     expect(response.status).toBe(200);
     expect(state.some(entry => entry.sql.includes('FROM health_logs WHERE user_id=? AND date=?'))).toBe(true);
+  });
+
+  it('returns the authenticated user and profile from the API identity endpoint', async () => {
+    vi.spyOn(access, 'requireIdentity').mockResolvedValue(identity);
+    const { env, state } = createEnv();
+    const response = await worker.fetch(new Request('https://meating.example/api/me'), env);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ user: { email: identity.email, name: identity.name }, profile: null });
+    expect(state.some(entry => entry.sql.includes('FROM profiles'))).toBe(true);
   });
 
   it('rejects an invalid date before querying D1', async () => {
