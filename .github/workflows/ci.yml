@@ -14,7 +14,26 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24.22.1
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck:worker
+      - run: npm run test:worker
+      - run: npm run build
+      - run: npm audit --omit=dev
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.22.1
           cache: npm
       - run: npm ci
       - run: npm run lint
