@@ -75,8 +75,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => { mounted = false; };
   }, []);
 
-  const signIn = async () => { setAuthError(null); window.location.assign('/cdn-cgi/access/login'); };
-  const logout = async () => { window.location.assign('/cdn-cgi/access/logout?returnTo=/login'); };
+  const signIn = async () => { setAuthError(null); window.location.reload(); };
+  const logout = async () => { window.location.assign('/cdn-cgi/access/logout'); };
   return <AuthContext.Provider value={{ user, profile, setProfile, loading, authError, signIn, logout }}>{children}</AuthContext.Provider>;
 }
 

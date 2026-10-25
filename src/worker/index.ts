@@ -1,5 +1,5 @@
 import { isResponse, requireIdentity } from './identity';
-import type { Env, Identity } from './types';
+import type { AccessContext, Env, Identity } from './types';
 
 type Row = Record<string, unknown>;
 const headers = { 'Cache-Control': 'no-store' };
@@ -209,10 +209,26 @@ async function api(request: Request, env: Env, identity: Identity) {
 }
 
 export default {
-  async fetch(request:Request,env:Env):Promise<Response>{
-    const url=new URL(request.url);if(!url.pathname.startsWith('/api/'))return env.ASSETS.fetch(request);
+  async fetch(request:Request,env:Env,ctx:AccessContext = {}):Promise<Response>{
+    const url=new URL(request.url);
+    if(!url.pathname.startsWith('/api/'))return env.ASSETS.fetch(request);
     if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{...headers,'Access-Control-Allow-Origin':url.origin,'Access-Control-Allow-Methods':'GET,POST,PUT,PATCH,DELETE,OPTIONS','Access-Control-Allow-Headers':'Content-Type'}});
-    try{const identity=await requireIdentity(request,env);if(isResponse(identity))return identity;await ensureUser(env,identity);return await api(request,env,identity);}
+    try{
+      let identity: Identity | Response;
+      if(url.pathname==='/api/identity'&&request.method==='GET'){
+        const accessIdentity=await ctx.access?.getIdentity();
+        if(!accessIdentity?.email)return fail('Authentication required',401);
+        if(accessIdentity.email.toLowerCase()!==env.ALLOWED_EMAIL?.trim().toLowerCase())return fail('Access denied',403);
+        identity={email:accessIdentity.email,name:accessIdentity.name??null,subject:accessIdentity.id??accessIdentity.email.toLowerCase()};
+      }else{
+        identity=await requireIdentity(request,env);
+        if(isResponse(identity))return identity;
+      }
+      if(isResponse(identity))return identity;
+      await ensureUser(env,identity);
+      if(url.pathname==='/api/identity'&&request.method==='GET')return json({email:identity.email,name:identity.name});
+      return await api(request,env,identity);
+    }
     catch(error){console.error('Worker API error',error instanceof Error?error.message:'unknown');return fail('Internal server error',500);}
   },
 };
