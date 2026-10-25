@@ -1,0 +1,1 @@
+ALTER TABLE profiles ADD COLUMN last_check_in_date TEXT;

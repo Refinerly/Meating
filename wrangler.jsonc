@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "meating",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-10-24",
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "meating-db",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

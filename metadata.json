@@ -1,0 +1,6 @@
+{
+  "name": "Meating",
+  "description": "A personal life-management app with Google Calendar/Tasks sync, weight goal tracking, and AI-powered health logging.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

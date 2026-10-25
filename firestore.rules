@@ -1,0 +1,323 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Connection test document
+    match /test/connection {
+      allow read: if isAuthenticated();
+    }
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == 'l4leather@gmail.com' && request.auth.token.email_verified == true));
+    }
+
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == resource.data.uid;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    function isValidString(field, minLen, maxLen) {
+      return request.resource.data[field] is string && 
+             request.resource.data[field].size() >= minLen && 
+             request.resource.data[field].size() <= maxLen;
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUserProfile() {
+      return hasRequiredFields(['uid', 'pilotLevel', 'avatarLevel', 'pilotWins', 'avatarWins', 'currentStreak', 'longestStreak', 'checkInTimes', 'badges', 'createdAt', 'updatedAt']) &&
+             request.resource.data.pilotLevel is number &&
+             request.resource.data.avatarLevel is number &&
+             request.resource.data.pilotWins is number &&
+             request.resource.data.avatarWins is number &&
+             request.resource.data.currentStreak is number &&
+             request.resource.data.longestStreak is number &&
+             request.resource.data.checkInTimes is list &&
+             request.resource.data.checkInTimes.size() <= 10 &&
+             request.resource.data.badges is list &&
+             request.resource.data.badges.size() <= 100 &&
+             request.resource.data.createdAt is string &&
+             request.resource.data.updatedAt is string;
+    }
+
+    function isValidCheckIn() {
+      return hasRequiredFields(['uid', 'timestamp', 'stats', 'socialBehavior', 'note', 'nudgesApplied']) &&
+             request.resource.data.timestamp is string &&
+             request.resource.data.stats is map &&
+             request.resource.data.stats.keys().hasAll(['energy', 'mood', 'stress', 'focus', 'social', 'health', 'creative', 'money', 'twitter']) &&
+             request.resource.data.stats.energy is number &&
+             request.resource.data.stats.mood is number &&
+             request.resource.data.stats.stress is number &&
+             request.resource.data.stats.focus is number &&
+             request.resource.data.stats.social is number &&
+             request.resource.data.stats.health is number &&
+             request.resource.data.stats.creative is number &&
+             request.resource.data.stats.money is number &&
+             request.resource.data.stats.twitter is number &&
+             request.resource.data.socialBehavior in ['watching', 'posting', 'neither'] &&
+             isValidString('note', 0, 2000) &&
+             request.resource.data.nudgesApplied is list &&
+             request.resource.data.nudgesApplied.size() <= 20;
+    }
+
+    function isValidProject() {
+      return hasRequiredFields(['uid', 'title', 'description', 'status', 'createdAt']) &&
+             isValidString('title', 1, 100) &&
+             isValidString('description', 0, 1000) &&
+             (!('notionLink' in request.resource.data) || isValidString('notionLink', 0, 1000)) &&
+             request.resource.data.status in ['Active', 'Paused', 'Completed'] &&
+             request.resource.data.createdAt is string;
+    }
+
+    function isValidMission() {
+      return hasRequiredFields(['uid', 'projectId', 'title', 'description', 'category', 'status', 'createdAt']) &&
+             isValidString('projectId', 0, 50) &&
+             isValidString('title', 1, 100) &&
+             isValidString('description', 0, 1000) &&
+             isValidString('category', 1, 50) &&
+             request.resource.data.status in ['Active', 'Paused', 'Completed'] &&
+             request.resource.data.createdAt is string;
+    }
+
+    function isValidQuest() {
+      return hasRequiredFields(['uid', 'projectId', 'title', 'missionId', 'dueTime', 'completed', 'date', 'createdAt']) &&
+             isValidString('projectId', 0, 50) &&
+             isValidString('title', 1, 100) &&
+             isValidString('missionId', 0, 50) &&
+             isValidString('dueTime', 0, 10) &&
+             request.resource.data.completed is bool &&
+             isValidString('date', 10, 10) &&
+             request.resource.data.createdAt is string;
+    }
+
+    function isValidAccount() {
+      return hasRequiredFields(['uid', 'name', 'balance', 'createdAt']) &&
+             isValidString('name', 1, 50) &&
+             request.resource.data.balance is number &&
+             request.resource.data.createdAt is string;
+    }
+
+    function isValidBill() {
+      return hasRequiredFields(['uid', 'name', 'amount', 'dueDate', 'createdAt']) &&
+             isValidString('name', 1, 50) &&
+             request.resource.data.amount is number &&
+             request.resource.data.dueDate is number &&
+             request.resource.data.dueDate >= 1 && request.resource.data.dueDate <= 31 &&
+             request.resource.data.createdAt is string;
+    }
+
+    function isValidExpense() {
+      return hasRequiredFields(['uid', 'name', 'amount', 'date', 'createdAt']) &&
+             isValidString('name', 1, 50) &&
+             request.resource.data.amount is number &&
+             isValidString('date', 10, 10) &&
+             request.resource.data.createdAt is string;
+    }
+
+    function isValidWishlist() {
+      return hasRequiredFields(['uid', 'name', 'cost', 'imageUrl', 'createdAt']) &&
+             isValidString('name', 1, 100) &&
+             request.resource.data.cost is number &&
+             isValidString('imageUrl', 0, 1000) &&
+             request.resource.data.createdAt is string;
+    }
+
+    function isValidHabit() {
+      return hasRequiredFields(['uid', 'title', 'missionId', 'schedule', 'streak', 'createdAt']) &&
+             isValidString('title', 1, 100) &&
+             isValidString('missionId', 0, 50) &&
+             isValidString('schedule', 1, 50) &&
+             request.resource.data.streak is number &&
+             request.resource.data.createdAt is string;
+    }
+
+    function isValidHabitLog() {
+      return hasRequiredFields(['uid', 'habitId', 'date', 'completedAt']) &&
+             isValidString('habitId', 1, 50) &&
+             isValidString('date', 10, 10) &&
+             request.resource.data.completedAt is string;
+    }
+
+    function isValidMicroNudge() {
+      return hasRequiredFields(['uid', 'name', 'description', 'conditionStat', 'conditionOperator', 'conditionValue', 'createdAt']) &&
+             isValidString('name', 1, 50) &&
+             isValidString('description', 0, 200) &&
+             isValidString('conditionStat', 0, 50) &&
+             request.resource.data.conditionOperator in ['<=', '>=', '==', '<', '>'] &&
+             request.resource.data.conditionValue is number &&
+             request.resource.data.createdAt is string;
+    }
+
+    function isValidWeeklyReflection() {
+      return hasRequiredFields(['uid', 'weekStartDate', 'note', 'helpfulBehaviors', 'harmfulPatterns', 'experimentRule', 'createdAt']) &&
+             isValidString('weekStartDate', 10, 10) &&
+             isValidString('note', 0, 5000) &&
+             isValidString('helpfulBehaviors', 0, 2000) &&
+             isValidString('harmfulPatterns', 0, 2000) &&
+             isValidString('experimentRule', 0, 500) &&
+             request.resource.data.createdAt is string;
+    }
+
+    function isValidEvaluation() {
+      return hasRequiredFields(['uid', 'timestamp', 'evaluation', 'helped', 'hurt', 'rule']) &&
+             isValidString('evaluation', 0, 5000) &&
+             isValidString('helped', 0, 5000) &&
+             isValidString('hurt', 0, 5000) &&
+             isValidString('rule', 0, 5000) &&
+             request.resource.data.timestamp is string;
+    }
+
+    function isValidHealthLog() {
+      return hasRequiredFields(['uid', 'date', 'updatedAt']) &&
+             isValidString('date', 10, 10) &&
+             (request.resource.data.weight is number || request.resource.data.weight is string) &&
+             isValidString('sleepTime', 0, 10) &&
+             isValidString('wakeTime', 0, 10) &&
+             request.resource.data.exercises is list &&
+             request.resource.data.exercises.size() <= 50 &&
+             request.resource.data.supplements is list &&
+             request.resource.data.supplements.size() <= 50 &&
+             request.resource.data.teas is list &&
+             request.resource.data.teas.size() <= 50 &&
+             (!('meals' in request.resource.data) || (request.resource.data.meals is list && request.resource.data.meals.size() <= 20)) &&
+             request.resource.data.updatedAt is string;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile() && uidUnchanged();
+      allow update: if isOwner(userId) && isValidUserProfile() && uidNotModified();
+      allow delete: if isOwner(userId);
+
+      match /checkins/{checkinId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidCheckIn() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidCheckIn() && uidNotModified();
+        allow delete: if isOwner(userId);
+      }
+
+      match /evaluations/{evalId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidEvaluation() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidEvaluation() && uidNotModified();
+        allow delete: if isOwner(userId);
+      }
+
+      match /healthLogs/{logId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidHealthLog() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidHealthLog() && uidNotModified();
+        allow delete: if isOwner(userId);
+      }
+
+      match /projects/{projectId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidProject() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidProject() && uidNotModified();
+        allow delete: if isOwner(userId);
+      }
+
+      match /missions/{missionId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidMission() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidMission() && uidNotModified();
+        allow delete: if isOwner(userId);
+      }
+
+      match /quests/{questId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidQuest() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidQuest() && uidNotModified();
+        allow delete: if isOwner(userId);
+      }
+
+      match /habits/{habitId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidHabit() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidHabit() && uidNotModified();
+        allow delete: if isOwner(userId);
+      }
+
+      match /habitLogs/{logId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidHabitLog() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidHabitLog() && uidNotModified();
+        allow delete: if isOwner(userId);
+      }
+
+      match /nudges/{nudgeId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidMicroNudge() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidMicroNudge() && uidNotModified();
+        allow delete: if isOwner(userId);
+      }
+
+      match /reflections/{reflectionId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidWeeklyReflection() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidWeeklyReflection() && uidNotModified();
+        allow delete: if isOwner(userId);
+      }
+
+      match /settings/{settingId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /accounts/{accountId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidAccount() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidAccount() && uidNotModified();
+        allow delete: if isOwner(userId);
+      }
+
+      match /bills/{billId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidBill() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidBill() && uidNotModified();
+        allow delete: if isOwner(userId);
+      }
+
+      match /expenses/{expenseId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidExpense() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidExpense() && uidNotModified();
+        allow delete: if isOwner(userId);
+      }
+
+      match /wishlist/{wishlistId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidWishlist() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidWishlist() && uidNotModified();
+        allow delete: if isOwner(userId);
+      }
+
+      match /stravaTokens/{tokenId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+  }
+}

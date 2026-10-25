@@ -1,0 +1,27 @@
+import React, { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
+import { Clock, Bell, Trash2, Save, LogOut } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { api } from '../lib/api';
+
+type Reminder = { id: number; time: string; active: boolean };
+const defaults: Reminder[] = [{id:1,time:'08:00',active:true},{id:2,time:'11:00',active:true},{id:3,time:'14:00',active:true},{id:4,time:'18:00',active:true},{id:5,time:'22:00',active:false}];
+
+export function Settings() {
+  const { user, logout, profile } = useAuth();
+  const [schedule,setSchedule]=useState(defaults);
+  const [notifications,setNotifications]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [resetConfirm,setResetConfirm]=useState(false);
+  const [message,setMessage]=useState('');
+  useEffect(()=>{if(!user)return;void api.settings().then(({settings})=>{if(Array.isArray(settings.schedule))setSchedule(settings.schedule as Reminder[]);if(typeof settings.notifications==='boolean')setNotifications(settings.notifications);}).catch(e=>setMessage(e instanceof Error?e.message:'Unable to load settings.'));},[user]);
+  const save=async()=>{setSaving(true);setMessage('');try{await api.saveSettings({schedule,notifications});setMessage('Settings saved.');}catch(e){setMessage(e instanceof Error?e.message:'Unable to save settings.');}finally{setSaving(false);}};
+  const reset=async()=>{setSaving(true);setMessage('');try{await api.reset();setSchedule(defaults);setNotifications(true);setResetConfirm(false);setMessage('Your Meating data has been reset.');}catch(e){setMessage(e instanceof Error?e.message:'Unable to reset data.');}finally{setSaving(false);}};
+  return <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} className="space-y-8"><header><h1 className="text-3xl font-bold text-white">Settings</h1><p className="text-zinc-400 mt-1">Your account and app preferences.</p></header>
+    <section className="bg-bg-card border border-border-dark rounded-2xl p-6 space-y-4"><h2 className="font-bold text-white">Cloudflare Access account</h2><p className="text-sm text-zinc-400">Signed in as <span className="text-white">{user?.email}</span>. Meating uses your Cloudflare Access session for authentication.</p><p className="text-sm text-zinc-500">Pilot level {profile?.pilotLevel??1} · Avatar level {profile?.avatarLevel??1}</p><button onClick={()=>void logout()} className="flex items-center gap-2 rounded-full bg-zinc-800 px-5 py-2 font-semibold text-white"><LogOut size={16}/> Sign out</button></section>
+    <section className="bg-bg-card border border-border-dark rounded-2xl p-6 space-y-5"><div className="flex items-center gap-3"><Clock className="text-neon-cyan"/><div><h2 className="font-bold text-white">Check-in reminders</h2><p className="text-sm text-zinc-500">Choose when you want reminders. Browser notifications require permission.</p></div></div><div className="space-y-3">{schedule.map((item,index)=><div key={item.id} className="flex items-center gap-4"><input aria-label="Reminder time" type="time" value={item.time} onChange={e=>setSchedule(list=>list.map((row,i)=>i===index?{...row,time:e.target.value}:row))} className="rounded-lg border border-border-dark bg-zinc-900 px-3 py-2 text-white"/><label className="flex items-center gap-2 text-sm text-zinc-300"><input type="checkbox" checked={item.active} onChange={e=>setSchedule(list=>list.map((row,i)=>i===index?{...row,active:e.target.checked}:row))}/>Active</label><button aria-label="Remove reminder" onClick={()=>setSchedule(list=>list.filter((_,i)=>i!==index))} className="text-zinc-500 hover:text-red-400"><Trash2 size={16}/></button></div>)}</div><button onClick={()=>setSchedule(list=>[...list,{id:Date.now(),time:'12:00',active:true}])} className="rounded-lg bg-zinc-800 px-4 py-2 text-sm text-white">Add reminder</button></section>
+    <section className="bg-bg-card border border-border-dark rounded-2xl p-6 flex items-center justify-between gap-4"><div className="flex items-center gap-3"><Bell className="text-neon-purple"/><div><h2 className="font-bold text-white">Browser notifications</h2><p className="text-sm text-zinc-500">Allow Meating to send reminders in this browser.</p></div></div><input type="checkbox" checked={notifications} onChange={e=>setNotifications(e.target.checked)}/></section>
+    <div className="flex flex-wrap items-center gap-4"><button onClick={()=>void save()} disabled={saving} className="flex items-center gap-2 rounded-full bg-neon-green px-6 py-3 font-bold text-black disabled:opacity-50"><Save size={18}/>{saving?'Saving…':'Save settings'}</button>{message&&<p role="status" className="text-sm text-zinc-300">{message}</p>}</div>
+    <section className="bg-bg-card border border-red-900/50 rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4"><div><h2 className="font-bold text-red-400">Reset all data</h2><p className="text-sm text-zinc-500">Permanently removes your Meating records. This cannot be undone.</p></div>{resetConfirm?<div className="flex gap-2"><button onClick={()=>setResetConfirm(false)} className="rounded-full bg-zinc-800 px-4 py-2 text-white">Cancel</button><button disabled={saving} onClick={()=>void reset()} className="rounded-full bg-red-600 px-4 py-2 font-bold text-white">Confirm reset</button></div>:<button onClick={()=>setResetConfirm(true)} className="rounded-full bg-red-600 px-5 py-2 font-bold text-white">Reset data</button>}</section>
+  </motion.div>;
+}

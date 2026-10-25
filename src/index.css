@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  --color-neon-green: #39FF14;
+  --color-neon-pink: #FF1493;
+  --color-neon-orange: #FF4500;
+  --color-neon-cyan: #00FFFF;
+  --color-neon-purple: #8A2BE2;
+  --color-neon-yellow: #FFD700;
+  --color-neon-blue: #1E90FF;
+  --color-bg-dark: #0a0a0a;
+  --color-bg-card: #111111;
+  --color-border-dark: #222222;
+}
+
+body {
+  background-color: var(--color-bg-dark);
+  color: #ffffff;
+}
+
+/* React Calendar Customization */
+.react-calendar {
+  border: none !important;
+  background: transparent !important;
+  color: white !important;
+}
+.react-calendar__tile--active {
+  background: var(--color-neon-green) !important;
+  color: black !important;
+}
+.react-calendar__tile--now {
+  background: #333 !important;
+}
+.react-calendar__navigation button:enabled:hover,
+.react-calendar__navigation button:enabled:focus {
+  background-color: #333 !important;
+}
+.react-calendar__month-view__days__day--neighboringMonth {
+  color: #555 !important;
+}

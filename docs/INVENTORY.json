@@ -1,0 +1,216 @@
+{
+  "appName": "Meating",
+  "version": "1.1.0",
+  "description": "Gamified health, habit, productivity, and life-management Progressive Web App (Meat Suit Pilot)",
+  "author": "l4leather@gmail.com",
+  "framework": "React 19 (TypeScript) + Vite 6 + Express 4.21",
+  "styling": "Tailwind CSS v4 + Motion v12 + Lucide React",
+  "routes": [
+    {
+      "path": "/login",
+      "component": "src/pages/Login.tsx",
+      "protected": false,
+      "purpose": "Google OAuth authentication entry screen"
+    },
+    {
+      "path": "/",
+      "component": "src/pages/Dashboard.tsx",
+      "protected": true,
+      "purpose": "Command center, XP radar/levels, daily quests, quick habit toggles, and Strava summary"
+    },
+    {
+      "path": "/check-in",
+      "component": "src/pages/CheckIn.tsx",
+      "protected": true,
+      "purpose": "10-parameter vital stats rating (1-5 sliders), mood observation, and check-in logging"
+    },
+    {
+      "path": "/missions",
+      "component": "src/pages/Missions.tsx",
+      "protected": true,
+      "purpose": "Long-term Projects, intermediate Missions, and daily executable Quests hierarchy"
+    },
+    {
+      "path": "/habits",
+      "component": "src/pages/Habits.tsx",
+      "protected": true,
+      "purpose": "Daily habit tracking, completion history, and streak calculations"
+    },
+    {
+      "path": "/health",
+      "component": "src/pages/Health.tsx",
+      "protected": true,
+      "purpose": "Daily weight, sleep/wake times, supplements/teas, meals, AI calorie estimation, and Strava workout sync"
+    },
+    {
+      "path": "/calendar",
+      "component": "src/pages/Calendar.tsx",
+      "protected": true,
+      "purpose": "Unified agenda combining Google Calendar events, Google Tasks, and daily local Quests"
+    },
+    {
+      "path": "/money",
+      "component": "src/pages/Money.tsx",
+      "protected": true,
+      "purpose": "Financial management, account balances (TSB, Nationwide, Halifax, Virgin, Cash), bills, expenses, and wishlist"
+    },
+    {
+      "path": "/analytics",
+      "component": "src/pages/Analytics.tsx",
+      "protected": true,
+      "purpose": "Historical trend charts, 30-day stats aggregation, and weekly reflection logs"
+    },
+    {
+      "path": "/settings",
+      "component": "src/pages/Settings.tsx",
+      "protected": true,
+      "purpose": "Check-in time schedules, Strava OAuth connection, weight goals, and data management"
+    }
+  ],
+  "apiEndpoints": [
+    {
+      "method": "POST",
+      "path": "/api/estimate-calories",
+      "purpose": "AI estimation of meal calories and nutritionist notes",
+      "handler": "server.ts",
+      "caller": "src/pages/Health.tsx:estimateCalories"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/strava/info",
+      "purpose": "Returns Strava configuration status, callback domain, and redirect URI",
+      "handler": "server.ts",
+      "caller": "src/pages/Settings.tsx"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/strava/url",
+      "purpose": "Generates Strava OAuth authorize URL with dynamic redirect_uri",
+      "handler": "server.ts",
+      "caller": "src/pages/Settings.tsx:connectStrava"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/strava/callback",
+      "purpose": "Handles OAuth code exchange with Strava and stores tokens in Firestore",
+      "handler": "server.ts",
+      "caller": "Strava OAuth redirect"
+    },
+    {
+      "method": "GET",
+      "path": "/api/strava/activities",
+      "purpose": "Fetches recent athlete activities from Strava API v3 with automatic token refresh",
+      "handler": "server.ts",
+      "caller": "src/pages/Health.tsx:syncStrava, src/pages/Dashboard.tsx"
+    },
+    {
+      "method": "POST",
+      "path": "/api/sync-dashboard",
+      "purpose": "Proxies aggregated check-in and habit data to external business dashboard",
+      "handler": "server.ts",
+      "caller": "src/pages/Settings.tsx:handleSyncData"
+    }
+  ],
+  "collections": [
+    {
+      "name": "users/{userId}",
+      "primaryKey": "userId (UID)",
+      "description": "User gamification profile, levels, total XP, streaks, and check-in times"
+    },
+    {
+      "name": "users/{userId}/healthLogs/{dateStr}",
+      "primaryKey": "dateStr (yyyy-MM-dd)",
+      "description": "Daily health metrics, sleep, wake time, weight, supplements, teas, meals, and exercises"
+    },
+    {
+      "name": "users/{userId}/checkins/{checkinId}",
+      "primaryKey": "autoId",
+      "description": "Daily 10-stat rating assessments and observations"
+    },
+    {
+      "name": "users/{userId}/projects/{projectId}",
+      "primaryKey": "autoId",
+      "description": "High-level long term goal projects with Notion links"
+    },
+    {
+      "name": "users/{userId}/missions/{missionId}",
+      "primaryKey": "autoId",
+      "description": "Intermediate milestones belonging to projects"
+    },
+    {
+      "name": "users/{userId}/quests/{questId}",
+      "primaryKey": "autoId",
+      "description": "Daily actionable tasks associated with missions or projects"
+    },
+    {
+      "name": "users/{userId}/habits/{habitId}",
+      "primaryKey": "autoId",
+      "description": "Daily habit tracking definitions and completion histories"
+    },
+    {
+      "name": "users/{userId}/accounts/{accountId}",
+      "primaryKey": "autoId",
+      "description": "Financial account balance cards"
+    },
+    {
+      "name": "users/{userId}/bills/{billId}",
+      "primaryKey": "autoId",
+      "description": "Monthly recurring bills and due dates"
+    },
+    {
+      "name": "users/{userId}/expenses/{expenseId}",
+      "primaryKey": "autoId",
+      "description": "Daily ad-hoc financial expenses"
+    },
+    {
+      "name": "users/{userId}/wishlist/{wishlistId}",
+      "primaryKey": "autoId",
+      "description": "Saved future purchases and target costs"
+    },
+    {
+      "name": "users/{userId}/settings/preferences",
+      "primaryKey": "preferences",
+      "description": "User notification toggles, check-in time schedules, and weight goals"
+    },
+    {
+      "name": "users/{userId}/stravaTokens/main",
+      "primaryKey": "main",
+      "description": "Encrypted/stored OAuth tokens and refresh credentials for Strava"
+    },
+    {
+      "name": "users/{userId}/reflections/{reflectionId}",
+      "primaryKey": "autoId",
+      "description": "Weekly qualitative reflections (what helped / hurt)"
+    }
+  ],
+  "models": [
+    {
+      "model": "gemini-3-flash-preview",
+      "recommendedProductionModel": "gemini-2.5-flash",
+      "task": "Meal calorie estimation and nutritionist breakdown notes",
+      "caller": "server.ts:POST /api/estimate-calories"
+    }
+  ],
+  "integrations": [
+    { "name": "Google Authentication", "status": "active", "scope": "P0" },
+    { "name": "Google Calendar API", "status": "active", "scope": "P1" },
+    { "name": "Google Tasks API", "status": "active", "scope": "P2" },
+    { "name": "Google Gemini API", "status": "active", "scope": "P1" },
+    { "name": "Strava API v3", "status": "active", "scope": "P1" },
+    { "name": "Cloud Firestore", "status": "active (to be migrated to Supabase Postgres)", "scope": "P0" },
+    { "name": "Meating Business Dashboard", "status": "optional", "scope": "P2" }
+  ],
+  "pwa": {
+    "manifest": "vite.config.ts (VitePWA)",
+    "serviceWorker": "registerType: autoUpdate",
+    "themeColor": "#050505",
+    "offlineSupport": true
+  },
+  "migrationTarget": {
+    "hosting": "Cloudflare Pages (Client SPA) + Cloudflare Functions / Workers (API routes)",
+    "database": "Supabase PostgreSQL with Row Level Security (RLS)",
+    "auth": "Supabase Auth (Google Provider with Calendar/Tasks scopes)",
+    "storage": "Supabase Storage",
+    "ai": "Direct Google Gemini API (@google/genai SDK or REST API with custom GEMINI_API_KEY)"
+  }
+}

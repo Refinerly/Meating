@@ -1,0 +1,17 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Local tool configuration and secrets
+.dev.vars
+.wrangler/
+.github/local-secrets.*
+
+# Legacy Google AI Studio/Firebase configuration should never be published
+firebase-applet-config.json
+firebase-blueprint.json
